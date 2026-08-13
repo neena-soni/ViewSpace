@@ -6,12 +6,15 @@ import com.example.viewspace.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,14 +22,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 
 import com.example.viewspace.config.JwtAuthFilter;
+
 import com.example.viewspace.config.JwtAuthEntryPoint;
 
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig 
 {
+	
+	
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthFilter jwtAuthFilter;
@@ -59,7 +66,12 @@ public class SecurityConfig
                         "/login.html", "/signup.html", "/otpverification.html",
                         "/css/**", "/js/**"
                     ).permitAll()
-                    .requestMatchers("/viewspace/auth/**").permitAll()
+                    .requestMatchers("/viewspace/auth/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/viewspace/product/**").hasAnyRole("USER", "ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/viewspace/product/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/viewspace/product/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/viewspace/product/**").hasRole("ADMIN")
                     .anyRequest().authenticated()  //other requests need a valid jwt token
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthEntryPoint))  //if authentication fails on protected requests, JwtAuthFiler class will handle exceptions.

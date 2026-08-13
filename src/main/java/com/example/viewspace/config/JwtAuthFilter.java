@@ -32,18 +32,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
+        System.out.println("=== JWT FILTER DEBUG ===");
+        System.out.println("Auth header: " + authHeader);
+        
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response); // no token — let it pass through, authorization rules decide
             return;
         }
 
         String token = authHeader.substring(7); // strip "Bearer " prefix
-
+        System.out.println("Extracted token: " + token);
+        
+        
+        boolean isValid = jwtUtils.validateJwtToken(token);
+        System.out.println("Token valid? " + isValid);
+        
         if (jwtUtils.validateJwtToken(token)) {
             String username = jwtUtils.getUsernameFromJwtToken(token);
-
+            System.out.println("Username from token: " + username);
+            
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            System.out.println("Authorities: " + userDetails.getAuthorities());
 
+            
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 

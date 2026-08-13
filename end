@@ -1,0 +1,107 @@
+warning: in the working copy of 'src/main/resources/application.properties', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/main/java/com/example/viewspace/config/JwtAuthFilter.java b/src/main/java/com/example/viewspace/config/JwtAuthFilter.java[m
+[1mindex 9e80fe3..988594b 100644[m
+[1m--- a/src/main/java/com/example/viewspace/config/JwtAuthFilter.java[m
+[1m+++ b/src/main/java/com/example/viewspace/config/JwtAuthFilter.java[m
+[36m@@ -32,18 +32,29 @@[m [mpublic class JwtAuthFilter extends OncePerRequestFilter {[m
+ [m
+         String authHeader = request.getHeader("Authorization");[m
+ [m
+[32m+[m[32m        System.out.println("=== JWT FILTER DEBUG ===");[m
+[32m+[m[32m        System.out.println("Auth header: " + authHeader);[m
+[32m+[m[41m        [m
+         if (authHeader == null || !authHeader.startsWith("Bearer ")) {[m
+             filterChain.doFilter(request, response); // no token — let it pass through, authorization rules decide[m
+             return;[m
+         }[m
+ [m
+         String token = authHeader.substring(7); // strip "Bearer " prefix[m
+[31m-[m
+[32m+[m[32m        System.out.println("Extracted token: " + token);[m
+[32m+[m[41m        [m
+[32m+[m[41m        [m
+[32m+[m[32m        boolean isValid = jwtUtils.validateJwtToken(token);[m
+[32m+[m[32m        System.out.println("Token valid? " + isValid);[m
+[32m+[m[41m        [m
+         if (jwtUtils.validateJwtToken(token)) {[m
+             String username = jwtUtils.getUsernameFromJwtToken(token);[m
+[31m-[m
+[32m+[m[32m            System.out.println("Username from token: " + username);[m
+[32m+[m[41m            [m
+             UserDetails userDetails = userDetailsService.loadUserByUsername(username);[m
+[32m+[m[32m            System.out.println("Authorities: " + userDetails.getAuthorities());[m
+ [m
+[32m+[m[41m            [m
+             UsernamePasswordAuthenticationToken authentication =[m
+                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());[m
+ [m
+[1mdiff --git a/src/main/java/com/example/viewspace/config/SecurityConfig.java b/src/main/java/com/example/viewspace/config/SecurityConfig.java[m
+[1mindex 21c0d6b..f78fb40 100644[m
+[1m--- a/src/main/java/com/example/viewspace/config/SecurityConfig.java[m
+[1m+++ b/src/main/java/com/example/viewspace/config/SecurityConfig.java[m
+[36m@@ -6,12 +6,15 @@[m [mimport com.example.viewspace.service.CustomUserDetailsService;[m
+ import lombok.RequiredArgsConstructor;[m
+ import org.springframework.context.annotation.Bean;[m
+ import org.springframework.context.annotation.Configuration;[m
+[32m+[m[32mimport org.springframework.http.HttpMethod;[m
+ import org.springframework.security.authentication.AuthenticationManager;[m
+ import org.springframework.security.authentication.dao.DaoAuthenticationProvider;[m
+ import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;[m
+[32m+[m[32mimport org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;[m
+ import org.springframework.security.config.annotation.web.builders.HttpSecurity;[m
+ import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;[m
+ import org.springframework.security.config.http.SessionCreationPolicy;[m
+[32m+[m[32mimport org.springframework.security.core.context.SecurityContextHolder;[m
+ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;[m
+ import org.springframework.security.crypto.password.PasswordEncoder;[m
+ import org.springframework.security.web.SecurityFilterChain;[m
+[36m@@ -19,14 +22,18 @@[m [mimport org.springframework.security.web.authentication.UsernamePasswordAuthentic[m
+ [m
+ [m
+ import com.example.viewspace.config.JwtAuthFilter;[m
+[32m+[m
+ import com.example.viewspace.config.JwtAuthEntryPoint;[m
+ [m
+ [m
+ @Configuration[m
+ @EnableWebSecurity[m
+[32m+[m[32m@EnableMethodSecurity[m
+ @RequiredArgsConstructor[m
+ public class SecurityConfig [m
+ {[m
+[32m+[m[41m	[m
+[32m+[m[41m	[m
+ [m
+     private final CustomUserDetailsService userDetailsService;[m
+     private final JwtAuthFilter jwtAuthFilter;[m
+[36m@@ -59,7 +66,12 @@[m [mpublic class SecurityConfig[m
+                         "/login.html", "/signup.html", "/otpverification.html",[m
+                         "/css/**", "/js/**"[m
+                     ).permitAll()[m
+[31m-                    .requestMatchers("/viewspace/auth/**").permitAll()[m
+[32m+[m[32m                    .requestMatchers("/viewspace/auth/**")[m
+[32m+[m[32m                    .permitAll()[m
+[32m+[m[32m                    .requestMatchers(HttpMethod.GET, "/viewspace/product/**").hasAnyRole("USER", "ADMIN")[m
+[32m+[m[32m                    .requestMatchers(HttpMethod.POST, "/viewspace/product/**").hasRole("ADMIN")[m
+[32m+[m[32m                    .requestMatchers(HttpMethod.PUT, "/viewspace/product/**").hasRole("ADMIN")[m
+[32m+[m[32m                    .requestMatchers(HttpMethod.DELETE, "/viewspace/product/**").hasRole("ADMIN")[m
+                     .anyRequest().authenticated()  //other requests need a valid jwt token[m
+                 )[m
+                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthEntryPoint))  //if authentication fails on protected requests, JwtAuthFiler class will handle exceptions.[m
+[1mdiff --git a/src/main/resources/application.properties b/src/main/resources/application.properties[m
+[1mindex 2f37d59..afd9fe9 100644[m
+[1m--- a/src/main/resources/application.properties[m
+[1m+++ b/src/main/resources/application.properties[m
+[36m@@ -9,9 +9,9 @@[m [mspring.jpa.hibernate.ddl-auto=update[m
+ spring.jpa.show-sql=true[m
+ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect[m
+ [m
+[31m-#cloudinary.cloud-name=${CLOUDINARY_CLOUD_NAME}[m
+[31m-#cloudinary.api-key=${CLOUDINARY_API_KEY}[m
+[31m-#cloudinary.api-secret=${CLOUDINARY_API_SECRET}[m
+[32m+[m[32mcloudinary.cloud-name=${CLOUDINARY_CLOUD_NAME}[m
+[32m+[m[32mcloudinary.api-key=${CLOUDINARY_API_KEY}[m
+[32m+[m[32mcloudinary.api-secret=${CLOUDINARY_API_SECRET}[m
+ [m
+ spring.mail.host = smtp.gmail.com[m
+ spring.mail.port = 587[m
