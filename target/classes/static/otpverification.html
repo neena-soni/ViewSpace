@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .otp-box {
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 12px 32px rgba(30, 52, 64, 0.12);
+            padding: 30px;
+            border-radius: 22px;
+            width: 340px;
+            color: #1d3b4d;
+        }
+
+        .otp-box h2 {
+            text-align: center;
+            margin-bottom: 18px;
+            letter-spacing: 1px;
+            color: #1b3d52;
+        }
+
+        .otp-field {
+            margin: 20px 0 18px;
+        }
+
+        .otp-field input {
+            width: 100%;
+            height: 48px;
+            text-align: center;
+            padding: 10px 12px;
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: 4px;
+            border-radius: 12px;
+        }
+
+        .otp-actions {
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .resend-link {
+            display: inline-block;
+            margin-top: 18px;
+            font-size: 14px;
+            color: rgba(21, 48, 65, 0.9);
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="otp-box">
+        <h2>OTP Verification</h2>
+
+        <form id="otpForm">
+            <div class="otp-field">
+                <input type="text"  id="otp" name="otp" maxlength="6" inputmode="numeric" placeholder="Enter OTP" aria-label="OTP">
+            </div>
+
+            <button type="submit">Verify</button>
+        </form>
+         
+          <p id="errorMsg" style="color: red; text-align: center;"></p>
+        <p id="successMsg" style="color: green; text-align: center;"></p>
+
+        <div class="otp-actions">
+            <a href="#" class="resend-link">Resend OTP</a>
+        </div>
+    </div>
+    <script src="/js/otp.js"></script>
+</body>
+</html>
