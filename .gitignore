@@ -1,6 +1,6 @@
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+# Product feature — local only
+# These files exist on your machine but will NOT be pushed to GitHub
+src/main/java/com/example/viewspace/entity/Product.java
+src/main/java/com/example/viewspace/repository/ProductRepository.java
+src/main/java/com/example/viewspace/service/ProductService.java
+src/main/java/com/example/viewspace/controller/ProductController.java

@@ -1,7 +1,7 @@
 package com.example.viewspace.service;
 
 import java.util.Set;
-
+import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,7 +30,9 @@ private final UserEntityRepository repo;
 		
 		UserEntity u = repo.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 		
-		Set<GrantedAuthority> authorities = Set.of(new SimpleGrantedAuthority(u.getRole().name()));
+		Set<GrantedAuthority> authorities = u.getRoles().stream()
+		        .map(role -> new SimpleGrantedAuthority(role.name()))
+		        .collect(Collectors.toSet());
 		
 		return new User(u.getUsername(),
 				       u.getPassword(),

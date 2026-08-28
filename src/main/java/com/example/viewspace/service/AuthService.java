@@ -153,6 +153,7 @@ public class AuthService {
 	 
 	 
 	 
+	 @Transactional
 	 public void forgotPassword(ForgotPasswordRequest request) throws MessagingException {
 
 		    UserEntity user = userRepository.findByEmail(request.getEmail())
