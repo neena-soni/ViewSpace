@@ -50,6 +50,9 @@ public class UserEntity
 	    @Column(nullable = false)
 	    private LocalDateTime createdAt = LocalDateTime.now();
 
+	    @Column(name = "jwt_version",nullable = false, columnDefinition = "integer default 1")
+	    private Integer jwtVersion = 1;
+
 	   
 	    
 	    

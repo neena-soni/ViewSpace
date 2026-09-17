@@ -18,12 +18,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+import com.example.viewspace.repository.UserEntityRepository;
+import com.example.viewspace.service.UserVersionService;
+
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
     private final CustomUserDetailsService userDetailsService;
+    private final UserVersionService userVersionService;
+    private final UserEntityRepository userEntityRepository;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -32,8 +37,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        System.out.println("=== JWT FILTER DEBUG ===");
         System.out.println("Auth header: " + authHeader);
+        
         
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response); // no token — let it pass through, authorization rules decide
@@ -41,26 +46,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7); // strip "Bearer " prefix
+        
         System.out.println("Extracted token: " + token);
         
         
-        boolean isValid = jwtUtils.validateJwtToken(token);
-        System.out.println("Token valid? " + isValid);
-        
         if (jwtUtils.validateJwtToken(token)) {
             String username = jwtUtils.getUsernameFromJwtToken(token);
-            System.out.println("Username from token: " + username);
-            
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            System.out.println("Authorities: " + userDetails.getAuthorities());
+            Integer tokenVersion = jwtUtils.getJwtVersionFromJwtToken(token);
+            Integer activeVersion = userVersionService.getJwtVersion(username, userEntityRepository);
 
-            
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            // Verify that the token version matches the active version in memory/DB
+            if (tokenVersion != null && tokenVersion.equals(activeVersion)) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                System.out.println("JWT version mismatch for user " + username + ": token version=" + tokenVersion + ", active version=" + activeVersion);
+            }
         }
 
         filterChain.doFilter(request, response); // continue to next filter / controller

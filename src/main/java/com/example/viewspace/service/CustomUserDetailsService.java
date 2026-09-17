@@ -28,7 +28,7 @@ private final UserEntityRepository repo;
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 		
-		UserEntity u = repo.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+		UserEntity u = repo.findByUsernameOrEmail(username, username).orElseThrow(() -> new UsernameNotFoundException("User not found with username or email: " + username));
 		
 		Set<GrantedAuthority> authorities = u.getRoles().stream()
 		        .map(role -> new SimpleGrantedAuthority(role.name()))

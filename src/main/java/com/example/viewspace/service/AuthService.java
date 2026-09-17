@@ -42,6 +42,7 @@ public class AuthService {
 	private final OtpCodeRepository otpCodeRepository;
 	  private final JwtUtils jwtUtils;
 	  private final AuthenticationManager authenticationManager;
+	  private final UserVersionService userVersionService;
 	
     
 	public void registerUser(RegisterRequest registerRequest) //throws MessagingException
@@ -59,17 +60,9 @@ public class AuthService {
         ue.setUsername(registerRequest.getUsername());
         ue.setEmail(registerRequest.getEmail());
         ue.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        //following fields have defult value set
-        //role: ROLE_USER
-        //isEnabled: false
-        //createdAt: localDateTime.now()
-        
+        ue.setJwtVersion(1);
         
         userRepository.save(ue);
-        
-        //String otp = otpService.generateAndSaveOtp(registerRequest.getEmail());
-        //emailService.sendOtpEmail(registerRequest.getEmail(),otp);
-        
     }
 
 	
@@ -77,23 +70,45 @@ public class AuthService {
 	
 	 public JwtResponse authenticateUser(LoginRequest loginRequest) 
 	 {
+		// STEP 1: Authenticate credentials (Username/Email & Password)
+		    // Spring Security validates the plain-text password against the BCrypt hash in DB.
+		    // Throws BadCredentialsException if authentication fails.
           Authentication authentication = authenticationManager.authenticate(
               new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
            );
   	
-   
-
+       // STEP 2: Store authentication object in Spring's SecurityContext
+          // Marks the current HTTP request thread as authenticated.
        SecurityContextHolder.getContext().setAuthentication(authentication);
-       String jwt = jwtUtils.generateJwtToken(authentication);
 
+    // STEP 3: Extract UserDetails and Granted Authorities (Roles)
+       // Extracts user roles (e.g., ROLE_USER, ROLE_ADMIN) to send back in the response DTO.
        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
        List<String> roles = userDetails.getAuthorities().stream()
                .map(GrantedAuthority::getAuthority)
                .collect(Collectors.toList());
 
        
-       //Does a fresh DB lookup via userRepository.findByUsername(...) to get the full UserEntity (for email, since UserDetails alone doesn't carry it — this is the trade-off we discussed earlier).
-       UserEntity user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow(()-> new IllegalArgumentException("User not found."));
+    // STEP 4: Fetch \ UserEntity from Database
+       // Uses findByUsernameOrEmail to handle logins via either username or email,
+       // ensuring we get the true  username for caching.
+       UserEntity user = userRepository.findByUsernameOrEmail(loginRequest.getUsername(), loginRequest.getUsername())
+               .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+       // Increment jwtVersion for Single Device Login in database
+       int newVersion = (user.getJwtVersion() != null ? user.getJwtVersion() : 1) + 1;
+       user.setJwtVersion(newVersion);
+       userRepository.save(user);
+
+       // Update in-memory version in  cache
+       //if in login user passes email instead of username , then it will be not possible to update veresion because in our ds map , key is username and value is version , 
+       //but if we pass that key to be an email , then problem.
+       //so here always username should be passed , not email , is user is logging in using email , still we will first find username and then pass it.
+       userVersionService.updateJwtVersion(user.getUsername(), newVersion);
+
+       
+       //generating new token with updated jwtversion
+       String jwt = jwtUtils.generateJwtToken(authentication, newVersion);
 
        return JwtResponse.builder()
                .token(jwt)
@@ -121,9 +136,7 @@ public class AuthService {
 			
 		
 			UserEntity user = userRepository.findByEmail(request.email()).orElseThrow(()-> new IllegalArgumentException("User not found."));
-			//making user verified and saving.
-			//user.setEnabled(true);
-			userRepository.save(user);
+			//userRepository.save(user);
 			
 			//deleting otp code record.
 			otpCodeRepository.deleteByEmail(request.email());
@@ -139,10 +152,6 @@ public class AuthService {
 
 	     UserEntity user = userRepository.findByEmail(request.getEmail())
 	             .orElseThrow(() -> new IllegalArgumentException("No account found with this email."));
-
-//	     if (user.isEnabled()) {
-//	         throw new IllegalArgumentException("Account already verified. Please log in.");
-//	     }
 
 	     // clear any existing OTP for this email before generating a new one
 	     otpCodeRepository.deleteByEmail(request.getEmail());
@@ -179,12 +188,28 @@ public class AuthService {
 		        throw new IllegalArgumentException("OTP has expired. Please request a new one.");
 		    }
 
-		    
 		    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+		    
+		    // Invalidate old JWTs by incrementing jwtVersion
+		    int newVersion = (user.getJwtVersion() != null ? user.getJwtVersion() : 1) + 1;
+		    user.setJwtVersion(newVersion);
 		    userRepository.save(user);
+		    userVersionService.updateJwtVersion(user.getUsername(), newVersion);  //here also always remember to pass username , not email.
 
 		    otpCodeRepository.deleteByEmail(request.getEmail());
-		}
+	 }
+
+	 public void logoutUser(String username) {
+	     if (username != null) {
+	         userRepository.findByUsernameOrEmail(username,username).ifPresent(user -> {
+	             int newVersion = (user.getJwtVersion() != null ? user.getJwtVersion() : 1) + 1;
+	             user.setJwtVersion(newVersion);
+	             userRepository.save(user);
+	             userVersionService.updateJwtVersion(user.getUsername(), newVersion);
+	         });
+	     }
+	     SecurityContextHolder.clearContext();
+	 }
 	 
 }
 	

@@ -92,15 +92,21 @@ public CorsConfigurationSource corsConfigurationSource() {
                         "/login.html", "/signup.html", "/otpverification.html",
                         "/css/**", "/js/**"
                     ).permitAll()
-                    .requestMatchers("/viewspace/auth/**")
-                    .permitAll()
+                    .requestMatchers(
+                    		"/viewspace/auth/register",
+                            "/viewspace/auth/login",
+                            "/viewspace/auth/verify-otp",
+                            "/viewspace/auth/resend-otp",
+                            "/viewspace/auth/forgot-password",
+                            "/viewspace/auth/reset-password"
+                     ) .permitAll()  // viewspace/auth/logout must not be public, it should go through token verification.
                     .requestMatchers(HttpMethod.GET, "/viewspace/posts/**").hasAnyRole("USER", "ADMIN")
                     .requestMatchers(HttpMethod.POST, "/viewspace/posts/**").hasAnyRole("USER", "ADMIN")
                     .requestMatchers(HttpMethod.PUT, "/viewspace/posts/**").hasAnyRole("USER", "ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/viewspace/posts/**").hasAnyRole("USER", "ADMIN")
                     .anyRequest().authenticated()  //other requests need a valid jwt token
                 )
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthEntryPoint))  //if authentication fails on protected requests, JwtAuthFiler class will handle exceptions.
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthEntryPoint))  //if authentication fails on protected requests, JwtAuthFiler class will handle exceptions.Tells Spring Security to send your 401 JSON when context is empty
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);  //filter to validate jwt for every incoming request.
            

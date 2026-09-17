@@ -1,7 +1,9 @@
 package com.example.viewspace.controller;
 
-import org.apache.http.HttpStatus;
 
+
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +36,7 @@ public class AuthController
 //	            return ResponseEntity.ok("OTP sent to your email. Please verify to complete registration.");
 	            return ResponseEntity.ok("Registration Successful.");
 	        } catch (IllegalArgumentException e) {
-	            return ResponseEntity.status(HttpStatus.SC_BAD_REQUEST).body(e.getMessage());
+	            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 	        } 
 //	            catch (MessagingException e) {
 //	            return ResponseEntity.status(HttpStatus.SC_INTERNAL_SERVER_ERROR)
@@ -52,7 +54,7 @@ public class AuthController
 			 return ResponseEntity.ok("OTP(Account) verified. Please login.");
 
 		 }catch (IllegalArgumentException e) {
-		        return ResponseEntity.status(HttpStatus.SC_BAD_REQUEST).body(e.getMessage());
+		        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 		    }
 	}
 	 
@@ -69,16 +71,16 @@ public class AuthController
  
 		 }catch (org.springframework.security.authentication.DisabledException e) {
 		        // Triggers when u.isEnabled() is false in database
-		        return ResponseEntity.status(HttpStatus.SC_FORBIDDEN)
+		        return ResponseEntity.status(HttpStatus.FORBIDDEN)
 		                .body("Account is not verified. Please check your email for the OTP.");
 		 }catch(AuthenticationException ae)
 		 {
-			 return ResponseEntity.status(HttpStatus.SC_UNAUTHORIZED)
+			 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 	                    .body("Authentication failed: Invalid username/password.");
 		 }
 		 catch(IllegalArgumentException e)
 		 {
-			 return ResponseEntity.status(HttpStatus.SC_BAD_REQUEST).body(e.getMessage());
+			 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 		 }
 	   }
 
@@ -90,9 +92,9 @@ public class AuthController
 	         authService.resendOtp(request);
 	         return ResponseEntity.ok("A new OTP has been sent to your email.");
 	     } catch (IllegalArgumentException e) {
-	         return ResponseEntity.status(HttpStatus.SC_BAD_REQUEST).body(e.getMessage());
+	         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 	     } catch (MessagingException e) {
-	         return ResponseEntity.status(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+	         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                 .body("Failed to send OTP email. Please try again.");
 	     }
 	 }
@@ -105,9 +107,9 @@ public class AuthController
 	         authService.forgotPassword(request);
 	         return ResponseEntity.ok("OTP sent to your email for password reset.");
 	     } catch (IllegalArgumentException e) {
-	         return ResponseEntity.status(HttpStatus.SC_BAD_REQUEST).body(e.getMessage());
+	         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 	     } catch (MessagingException e) {
-	         return ResponseEntity.status(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+	         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                 .body("Failed to send OTP email. Please try again.");
 	     }
 	 }
@@ -118,8 +120,16 @@ public class AuthController
 	         authService.resetPassword(request);
 	         return ResponseEntity.ok("Password reset successful. Please log in with your new password.");
 	     } catch (IllegalArgumentException e) {
-	         return ResponseEntity.status(HttpStatus.SC_BAD_REQUEST).body(e.getMessage());
+	         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 	     }
+	 }
+
+	 @PostMapping("/logout")
+	 public ResponseEntity<?> logout(org.springframework.security.core.Authentication authentication) {
+	     if (authentication != null) {
+	         authService.logoutUser(authentication.getName());
+	     }
+	     return ResponseEntity.ok("Logout successful.");
 	 }
 	 
 	 

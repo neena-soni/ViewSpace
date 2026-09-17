@@ -41,20 +41,22 @@ public class JwtUtils {
 
     
    
-    public String generateJwtToken(Authentication authentication) {
+    public String generateJwtToken(Authentication authentication, Integer jwtVersion) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();   
 
-       
         return Jwts.builder()
                 .subject((userPrincipal.getUsername()))  
+                .claim("jwtVersion", jwtVersion != null ? jwtVersion : 1)
                 .issuedAt(new Date())
                 .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key(), Jwts.SIG.HS256)
                 .compact();
     }
 
-    
-    
+    public String generateJwtToken(Authentication authentication) {
+        return generateJwtToken(authentication, 1);
+    }
+
     public String getUsernameFromJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith(key())   //first verifying secret key.
@@ -62,6 +64,23 @@ public class JwtUtils {
                 .parseSignedClaims(token)     //extracting claims.    // claims are pieces of information or statements about an entity (usually the user) and metadata about the token itself. They are stored as key-value pairs inside the token's payload
                 .getPayload()    //extracting payload from calims
                 .getSubject();   //extracting subject(i.e username) from payload.
+    }
+
+    public Integer getJwtVersionFromJwtToken(String token) {
+        try {
+            Object versionObj = Jwts.parser()
+                    .verifyWith(key())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .get("jwtVersion");
+            if (versionObj instanceof Number) {
+                return ((Number) versionObj).intValue();
+            }
+        } catch (Exception e) {
+            logger.error("Could not extract jwtVersion from token: {}", e.getMessage());
+        }
+        return null;
     }
 
     
