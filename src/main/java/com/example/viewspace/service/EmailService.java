@@ -19,7 +19,7 @@ public class EmailService {
 	
 	private final JavaMailSender mailSender;
 	
-	@Value("${spring.mail.username}")
+	@Value("${emails.sender_email}")
 	private String fromEmail;
 			
 //	public void sendMail(String to, String otp)
