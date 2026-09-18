@@ -5,6 +5,7 @@ package com.example.viewspace.config;
 import com.example.viewspace.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -63,6 +64,8 @@ public class SecurityConfig
     }
 
     
+    //from application properties we will get env variables allowed origins i.e. frontend urls
+    //since we have multiple urls we will get string of comma separated urls and then we will make List<String> of these urls and then we will set this list tin spring security's CORS configuration.
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOriginsProperty;
 
@@ -72,9 +75,17 @@ public CorsConfigurationSource corsConfigurationSource() {
  // Comma-separated list from the ALLOWED_ORIGINS env var on Render.
     // Falls back to localhost:5173 alone when the env var isn't set (local dev
     //config.setAllowedOrigins(List.of("http://localhost:5173"));
-    config.setAllowedOrigins(List.of(allowedOriginsProperty.split(",")));
+    
+    
+    List<String> origins = Arrays.stream(allowedOriginsProperty.split(","))
+            .map(String::trim)
+            .toList();
+    
+    config.setAllowedOrigins(origins);
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+//    config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+    config.setAllowedHeaders(List.of("*")); // Allow all incoming headers   // Wildcard '*' allows all browser headers (Content-Type, Authorization, X-Requested-With, etc.) to prevent CORS pre-flight rejection
+    config.setAllowCredentials(true); // Allow cookies / auth headers
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
@@ -88,6 +99,10 @@ public CorsConfigurationSource corsConfigurationSource() {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+            		//  Explicitly allow all HTTP OPTIONS  requests
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            		
+            		//public pages 
                     .requestMatchers(
                         "/login.html", "/signup.html", "/otpverification.html",
                         "/css/**", "/js/**"
@@ -100,6 +115,8 @@ public CorsConfigurationSource corsConfigurationSource() {
                             "/viewspace/auth/forgot-password",
                             "/viewspace/auth/reset-password"
                      ) .permitAll()  // viewspace/auth/logout must not be public, it should go through token verification.
+                    
+                    //protected endpoints
                     .requestMatchers(HttpMethod.GET, "/viewspace/posts/**").hasAnyRole("USER", "ADMIN")
                     .requestMatchers(HttpMethod.POST, "/viewspace/posts/**").hasAnyRole("USER", "ADMIN")
                     .requestMatchers(HttpMethod.PUT, "/viewspace/posts/**").hasAnyRole("USER", "ADMIN")
