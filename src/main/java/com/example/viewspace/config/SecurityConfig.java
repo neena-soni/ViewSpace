@@ -81,7 +81,7 @@ public CorsConfigurationSource corsConfigurationSource() {
             .map(String::trim)
             .toList();
     
-    config.setAllowedOrigins(origins);
+    config.setAllowedOriginPatterns(origins);
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 //    config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
     config.setAllowedHeaders(List.of("*")); // Allow all incoming headers   // Wildcard '*' allows all browser headers (Content-Type, Authorization, X-Requested-With, etc.) to prevent CORS pre-flight rejection

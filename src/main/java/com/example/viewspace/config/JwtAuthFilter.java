@@ -72,4 +72,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response); // continue to next filter / controller
     }
+    
+    
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+
+        // Logout request par FILTER CHALEGA (shouldNotFilter = false)
+        if (path.startsWith("/viewspace/auth/logout")) {
+            return false;
+        }
+
+        // Rest public auth routes par filter SKIP hoga
+        return path.startsWith("/viewspace/auth/") || 
+               path.startsWith("/login.html") || 
+               path.startsWith("/signup.html");
+    }
 }
